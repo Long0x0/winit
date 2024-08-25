@@ -1233,10 +1233,6 @@ impl<'a, T: 'static> InitData<'a, T> {
             win.set_content_protected(true);
         }
 
-        // Set visible before setting the size to ensure the
-        // attribute is correctly applied.
-        win.set_visible(attributes.visible);
-
         win.set_enabled_buttons(attributes.enabled_buttons);
 
         if attributes.fullscreen.0.is_some() {
@@ -1261,6 +1257,18 @@ impl<'a, T: 'static> InitData<'a, T> {
                 win.set_maximized(true);
             }
         }
+
+        // Setting visible before setting the size causes black/white flickering;
+        // showing the decorated window directly results in an unpleasant white
+        // background. So here's a hack: set visible on the undecorated window,
+        // then apply the decorations again. The window will remain transparent
+        // until it gets repainted. Changes to flag `SWP_FRAMECHANGED` trigger
+        // `WM_NCCALCSIZE` event.
+        win.set_decorations(false);
+        win.set_undecorated_shadow(false);
+        win.set_visible(attributes.visible);
+        win.set_decorations(attributes.decorations);
+        win.set_undecorated_shadow(self.pl_attribs.decoration_shadow);
 
         // let margins = MARGINS {
         //     cxLeftWidth: 1,
